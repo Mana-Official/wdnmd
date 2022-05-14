@@ -130,16 +130,18 @@ int main(int argc, const char** argv) {
     }
     //read all signals time block data.
 
-    std::map<char, unsigned char> scalar_converter;
-    scalar_converter['0'] = 0;
-    scalar_converter['1'] = 1;
-    scalar_converter['x'] = 2;
-    scalar_converter['z'] = 3;
+    std::map<char, unsigned char> converter;
+    converter['0'] = 0;
+    converter['1'] = 1;
+    converter['x'] = 2;
+    converter['z'] = 3;
     std::vector<std::vector<std::pair<long long, unsigned char>>> scalar_data; // i for signal, j for time
     std::vector<std::vector<std::pair<long long, std::vector<unsigned char>>>> vector_data; // i for signal, j for time
     std::map<std::string, unsigned> data_type;    // 0 for scalar, 1 for vector, 2 for real
     std::map<std::string, unsigned> scalar_index;
     std::map<std::string, unsigned> vector_index;
+    std::vector<std::string> scalar_name;
+    std::vector<std::string> vector_name;
 
     reader.beginReadTimeData(); //must call this function before read VC data.
     while (!reader.isDataFinished()) {
@@ -152,16 +154,17 @@ int main(int argc, const char** argv) {
             unsigned l = s.length();
             unsigned index;
             // if (isdigit(s[0]) || s[0] == 'x' || s[0] == 'z') {    // scalar
-            if (scalar_converter.count(s[0])) { // scalar
+            if (converter.count(s[0])) { // scalar
                 std::string name = s.substr(1, l); // s[1:] (correct code)
                 if (!scalar_index.count(name)) {    // not inserted
                     scalar_data.push_back(std::vector<std::pair<long long, unsigned char>>(0));
                     index = scalar_data.size() - 1;
                     data_type[name] = 0;
                     scalar_index[name] = index;
+                    scalar_name[index] = name;
                 } else
                     index = scalar_index[name];
-                scalar_data[index].push_back(std::make_pair(time, scalar_converter[s[0]]));
+                scalar_data[index].push_back(std::make_pair(time, converter[s[0]]));
             } else if (s[0] == 'b') {   // vector
                 unsigned space_pos = s.length()-1;
                 while (s[space_pos] != ' ') space_pos--;
@@ -172,12 +175,31 @@ int main(int argc, const char** argv) {
                     index = vector_data.size() - 1;
                     data_type[name] = 1;
                     vector_index[name] = index;
+                    vector_name[index] = name;
                 } else
                     index = vector_index[name];
                 vector_data[index].push_back(std::make_pair(time, std::vector<unsigned char>(0)));
                 vector_data[index].back().second.reserve(bits.length());
                 for (auto b : bits)
-                    vector_data[index].back().second.push_back(scalar_converter[b]);
+                    vector_data[index].back().second.push_back(converter[b]);
+            }
+        }
+
+        std::string output;
+
+        for (int i = 0; i < scalar_data.size(); i++) {
+            auto &signal = scalar_data[i];
+            output += scalar_name[i] + '\n';
+
+            output += signal[0].first + ' ';
+            output += signal[0].second + '\n';
+
+            for (int i = 1; i < signal.size(); i++) {
+                output += signal[i].first;
+                if (signal[i].second == signal[i-1].second) {   // predict fail
+                    output += ' ' + signal[i].second;
+                }
+                output += '\n';
             }
         }
 
