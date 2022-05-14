@@ -148,12 +148,12 @@ int main(int argc, const char** argv) {
         const std::vector<std::string> &vcDatas = reader.getVCValues();
         // process data here.
 
-        for (string s : vcDatas) {
+        for (std::string s : vcDatas) {
             unsigned l = s.length();
+            unsigned index;
             // if (isdigit(s[0]) || s[0] == 'x' || s[0] == 'z') {    // scalar
             if (scalar_converter.count(s[0])) { // scalar
                 std::string name = s.substr(1, l); // s[1:] (correct code)
-                unsigned index;
                 if (!scalar_index.count(name)) {    // not inserted
                     scalar_data.push_back(std::vector<std::pair<long long, unsigned char>>(0));
                     index = scalar_data.size() - 1;
@@ -161,7 +161,7 @@ int main(int argc, const char** argv) {
                     scalar_index[name] = index;
                 } else
                     index = scalar_index[name];
-                scalar_data[index].push_back(make_pair(time, scalar_converter[s[0]));
+                scalar_data[index].push_back(std::make_pair(time, scalar_converter[s[0]]));
             } else if (s[0] == 'b') {   // vector
                 unsigned space_pos = s.length()-1;
                 while (s[space_pos] != ' ') space_pos--;
@@ -174,9 +174,10 @@ int main(int argc, const char** argv) {
                     vector_index[name] = index;
                 } else
                     index = vector_index[name];
-                vector_data[index].reverse(bits.length());
+                vector_data[index].push_back(std::make_pair(time, std::vector<unsigned char>(0)));
+                vector_data[index].back().second.reserve(bits.length());
                 for (auto b : bits)
-                    vector_data[name].push_back(scalar_converter[b]);
+                    vector_data[index].back().second.push_back(scalar_converter[b]);
             }
         }
 
